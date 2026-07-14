@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University ID Card Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-bg: #f1f5f9;
+            --cu-red: #c61d23;
+            --cu-black: #111111;
+            --cu-text: #222222;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+            color: #333;
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            gap: 2rem;
+            max-width: 1350px;
+            width: 100%;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        /* --- Form Section --- */
+        .form-section {
+            flex: 1;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            min-width: 380px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .form-section h2 {
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+            color: var(--cu-red);
+        }
+        
+        .section-label {
+            grid-column: span 2;
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--cu-red);
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 5px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .input-group { margin-bottom: 1rem; }
+        .input-group.full-width { grid-column: span 2; }
+        
+        .input-group label {
+            display: block; margin-bottom: 0.4rem; font-size: 0.85rem; font-weight: bold; color: #475569; text-transform: uppercase;
+        }
+        .input-group input, .input-group textarea {
+            width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; text-transform: uppercase;
+        }
+        .input-group input[type="file"], 
+        .input-group input#in-sig-name { 
+            text-transform: none; 
+        }
+        
+        .help-text {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.2rem;
+            text-transform: none;
+            display: block;
+        }
+
+        .export-btn {
+            grid-column: span 2; background: var(--cu-red); color: white; border: none; padding: 1rem; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 1rem; transition: background 0.2s;
+        }
+        .export-btn:hover { background: #a0151a; }
+
+        /* --- Preview Section --- */
+        .preview-section {
+            flex: 1.5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            min-width: 550px;
+        }
+
+        #id-card-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            background: transparent;
+        }
+
+        /* --- ID Card Base Styles --- */
+        .id-card {
+            width: 560px;
+            height: 400px; /* UPDATED: Now strictly 400px */
+            background-color: white;
+            border: 1px solid #ccc;
+            position: relative;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            overflow: hidden;
+            color: var(--cu-text);
+        }
+
+        /* --- Front Card Header --- */
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 25px 5px 25px;
+            align-items: center;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            height: 70px;
+        }
+
+        .logo-area img {
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Barcode Wrapper */
+        .barcode-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            margin-top: 5px;
+        }
+
+        .uid-container {
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        .uid-container span { color: var(--cu-red); }
+
+        /* --- Front Card Body --- */
+        .card-body {
+            display: flex;
+            padding: 15px 30px; 
+            gap: 25px; 
+            position: relative;
+            z-index: 2;
+            height: 245px; /* UPDATED: Adjusted to fill the new 400px total height */
+        }
+
+        /* Watermark Background */
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 60%;
+            transform: translate(-50%, -50%);
+            font-size: 200px;
+            color: #000;
+            opacity: 0.04;
+            z-index: -1;
+            line-height: 1;
+        }
+
+        .photo-section {
+            width: 115px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo-box {
+            width: 115px;
+            height: 140px;
+            border: 2px solid var(--cu-black);
+            background: #eee;
+            margin-bottom: 8px; 
+        }
+
+        .photo-box img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Signature Styling */
+        .signature-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .signature-name {
+            font-family: 'Dancing Script', cursive;
+            font-size: 24px;
+            color: var(--cu-black);
+            line-height: 1;
+            margin-bottom: 2px;
+        }
+
+        .signature-text { 
+            font-size: 11px; 
+            font-weight: bold; 
+            text-align: center;
+            border-top: 1px solid var(--cu-black);
+            width: 100%;
+            padding-top: 3px;
+        }
+
+        .details-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 130px 15px 1fr;
+            row-gap: 14px; /* Increased row gap slightly to look balanced in 400px height */
+            font-size: 13px;
+            font-weight: 900;
+            align-content: center; 
+        }
+
+        /* --- Front Card Footer --- */
+        .card-footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 70px;
+            display: flex;
+        }
+
+        .footer-left {
+            background: var(--cu-red);
+            color: white;
+            width: 78%;
+            padding: 10px 25px;
+            font-size: 10.5px;
+            font-weight: bold;
+            line-height: 1.3;
+        }
+
+        .footer-left i { font-weight: normal; font-size: 9.5px; display: block; margin-top: 3px; opacity: 0.9;}
+
+        .footer-right {
+            background: var(--cu-black);
+            color: white;
+            width: 22%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+        }
+        .footer-right span { font-weight: 900; font-size: 14px; margin-top: 2px;}
+
+        /* --- Back Card Styles --- */
+        .back-card {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .back-header {
+            background: var(--cu-red);
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+
+        .back-body {
+            padding: 30px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .back-info-row { display: flex; gap: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;}
+        .back-label { color: var(--cu-red); width: 140px; }
+        .back-value { flex: 1; line-height: 1.4; }
+        
+        .back-footer {
+            background: var(--cu-black);
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* --- Modal Styles --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal {
+            background: white; padding: 2rem; border-radius: 8px; width: 350px; text-align: center;
+        }
+        .modal input { width: 100%; padding: 0.8rem; margin: 1rem 0; border: 1px solid #ccc; border-radius: 4px; text-transform: none !important;}
+        .modal-buttons { display: flex; gap: 10px; }
+        .modal-buttons button { flex: 1; padding: 0.8rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;}
+        .btn-cancel { background: #e2e8f0; }
+        .btn-confirm { background: var(--cu-red); color: white; }
+        .error { color: var(--cu-red); font-size: 13px; display: none; font-weight: bold; margin-bottom: 10px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="form-section">
+            <h2>Enter Student Details</h2>
+            
+            <div class="form-grid">
+                
+                <div class="section-label">FRONT OF CARD</div>
+
+                <div class="input-group full-width">
+                    <label>Student Photo</label>
+                    <input type="file" id="photoUpload" accept="image/*">
+                </div>
+                
+                <div class="input-group full-width">
+                    <label>University Logo (Failsafe)</label>
+                    <input type="file" id="logoUpload" accept="image/*">
+                    <span class="help-text">Only upload here if the default logo is missing in the PDF.</span>
+                </div>
+
+                <div class="input-group full-width">
+                    <label>University ID Number</label>
+                    <input type="text" id="in-uid" placeholder="21BCS8681" oninput="update('in-uid', 'out-uid')">
+                </div>
+
+                <div class="input-group">
+                    <label>Name</label>
+                    <input type="text" id="in-name" placeholder="Khushboo" oninput="update('in-name', 'out-name')">
+                </div>
+                
+                <div class="input-group">
+                    <label>Course</label>
+                    <input type="text" id="in-course" placeholder="B.E. (CSE)" oninput="update('in-course', 'out-course')">
+                </div>
+
+                <div class="input-group">
+                    <label>Father's Name</label>
+                    <input type="text" id="in-fname" placeholder="Mahender Singh" oninput="update('in-fname', 'out-fname')">
+                </div>
+
+                <div class="input-group">
+                    <label>Mother's Name</label>
+                    <input type="text" id="in-mname" placeholder="Radha" oninput="update('in-mname', 'out-mname')">
+                </div>
+
+                <div class="input-group">
+                    <label>Contact No.</label>
+                    <input type="text" id="in-contact" placeholder="9306653570" oninput="update('in-contact', 'out-contact')">
+                </div>
+
+                <div class="input-group full-width" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label>Signature Name</label>
+                        <input type="text" id="in-sig-name" placeholder="Monika" oninput="updateRaw('in-sig-name', 'out-sig-name')">
+                    </div>
+                    <div>
+                        <label>Signature Title</label>
+                        <input type="text" id="in-sig-title" placeholder="Issuing Authority" oninput="update('in-sig-title', 'out-sig-title')">
+                    </div>
+                </div>
+
+                <div class="section-label">BACK OF CARD</div>
+
+                <div class="input-group full-width">
+                    <label>Address</label>
+                    <textarea id="in-address" rows="2" placeholder="Bhagat Singh Nagar, Kanganpur Road Sirsa..." oninput="update('in-address', 'out-address')"></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label>Valid Till</label>
+                    <input type="text" id="in-valid" placeholder="JUN-2025" oninput="update('in-valid', 'out-valid')">
+                </div>
+
+                <div class="input-group">
+                    <label>Blood Group</label>
+                    <input type="text" id="in-blood" placeholder="O+" oninput="update('in-blood', 'out-blood')">
+                </div>
+                
+                <div class="input-group full-width">
+                    <label>Emergency Contact</label>
+                    <input type="text" id="in-emg" placeholder="Parent's Number" oninput="update('in-emg', 'out-emg')">
+                </div>
+
+                <button class="export-btn" onclick="openModal()">Export to PDF</button>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <div id="id-card-container">
+                
+                <div class="id-card" id="front-card">
+                    <div class="top-header">
+                        <div class="logo-area">
+                            <img id="out-logo" src="https://images.weserv.nl/?url=creativeconsultancy.com.bd/wp-content/uploads/2024/08/cu-logo.png" alt="Chandigarh University Logo" crossorigin="anonymous">
+                        </div>
+                        <div class="barcode-wrapper">
+                            <svg id="barcode-canvas"></svg>
+                            <div class="uid-container">UNIVERSITY ID <span id="out-uid">21BCS8681</span></div>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="watermark">&#9881;</div> 
+                        
+                        <div class="photo-section">
+                            <div class="photo-box">
+                                <img id="out-photo" src="https://via.placeholder.com/115x140?text=Photo" alt="Student Photo">
+                            </div>
+                            
+                            <div class="signature-container">
+                                <div class="signature-name" id="out-sig-name">Monika</div>
+                                <div class="signature-text" id="out-sig-title">ISSUING AUTHORITY</div>
+                            </div>
+                        </div>
+
+                        <div class="details-grid">
+                            <div>NAME</div><div>:</div><div id="out-name">KHUSHBOO</div>
+                            <div>COURSE</div><div>:</div><div id="out-course">B.E. (CSE)</div>
+                            <div>FATHER'S NAME</div><div>:</div><div id="out-fname">MAHENDER SINGH</div>
+                            <div>MOTHER'S NAME</div><div>:</div><div id="out-mname">RADHA</div>
+                            <div>CONTACT</div><div>:</div><div id="out-contact">9306653570</div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="footer-left">
+                            1. Student must carry & wear this card during the campus hour<br>
+                            2. This card is issued for identification purpose only.<br>
+                            If found please return to Chandigarh University Tel +91-160 3014444, 3014424
+                            <i>(This Virtual ID Card is valid only up to commencement of regular on-campus classes.)</i>
+                        </div>
+                        <div class="footer-right">
+                            www.cuchd.in<br>
+                            <span>1800 200 0025</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="html2pdf__page-break"></div>
+
+                <div class="id-card back-card" id="back-card">
+                    <div class="back-header">STUDENT INFORMATION & GUIDELINES</div>
+                    
+                    <div class="back-body">
+                        <div class="back-info-row">
+                            <div class="back-label">ADDRESS :</div>
+                            <div class="back-value" id="out-address">BHAGAT SINGH NAGAR, KANGANPUR ROAD SIRSA, HARYANA, SIRSA</div>
+                        </div>
+                        <div class="back-info-row">
+                            <div class="back-label">VALID TILL :</div>
+                            <div class="back-value" id="out-valid">JUN-2025</div>
+                        </div>
+                        
+                        <div class="back-info-row">
+                            <div class="back-label">BLOOD GROUP :</div>
+                            <div class="back-value" id="out-blood">O+</div>
+                        </div>
+                        <div class="back-info-row">
+                            <div class="back-label">EMERGENCY NO. :</div>
+                            <div class="back-value" id="out-emg">NOT PROVIDED</div>
+                        </div>
+                        
+                        <div style="margin-top: 10px; line-height: 1.6; color: #444;">
+                            • This card is non-transferable and must be surrendered upon graduation or withdrawal from the university.<br>
+                            • Loss of this card must be reported immediately to the administration.<br>
+                            • Certified that above mentioned student is registered under Chandigarh University.
+                        </div>
+                    </div>
+
+                    <div class="back-footer">
+                        PROPERTY OF CHANDIGARH UNIVERSITY<br>
+                        NH-95 Chandigarh-Ludhiana Highway, Mohali, Punjab
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="pwdModal">
+        <div class="modal">
+            <h3 style="color: var(--cu-red);">Authorization Required</h3>
+            <p style="font-size: 13px; color: #666; margin-top: 5px;">Enter PIN to generate PDF</p>
+            <input type="password" id="exportPassword" placeholder="Enter PIN (2121)">
+            <div class="error" id="errorMsg">Incorrect PIN. Please try again.</div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-confirm" onclick="verifyAndExport()">Unlock & Export</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Draw initial barcode
+        function generateBarcode(val) {
+            try {
+                JsBarcode("#barcode-canvas", val || "21BCS8681", {
+                    format: "CODE128",
+                    displayValue: false,
+                    height: 38,
+                    width: 1.8,
+                    margin: 0,
+                    lineColor: "#000000"
+                });
+            } catch(e) { console.error("Barcode generation failed", e); }
+        }
+        
+        // Call it immediately on page load
+        generateBarcode("21BCS8681");
+
+        // Update text dynamically, enforcing uppercase for general fields
+        function update(inputId, outputId) {
+            const val = document.getElementById(inputId).value.toUpperCase();
+            document.getElementById(outputId).innerText = val || (inputId === 'in-uid' ? "21BCS8681" : "");
+            
+            // If the user is typing in the UID field, automatically update the barcode graphic!
+            if (inputId === 'in-uid') {
+                generateBarcode(val || "21BCS8681");
+            }
+        }
+
+        // Update raw text (for fields like Signature where exact casing matters)
+        function updateRaw(inputId, outputId) {
+            const val = document.getElementById(inputId).value;
+            document.getElementById(outputId).innerText = val;
+        }
+
+        // Handle Student Photo Upload
+        document.getElementById('photoUpload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('out-photo').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Handle University Logo Upload (Failsafe)
+        document.getElementById('logoUpload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Embeds logo as Base64 which completely bypasses all CORS PDF restrictions
+                    document.getElementById('out-logo').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Modal Logic
+        const modal = document.getElementById('pwdModal');
+        const pwdInput = document.getElementById('exportPassword');
+        const errorMsg = document.getElementById('errorMsg');
+        const containerEl = document.getElementById('id-card-container');
+
+        function openModal() {
+            modal.style.display = 'flex';
+            pwdInput.value = '';
+            errorMsg.style.display = 'none';
+            pwdInput.focus();
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        pwdInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") { verifyAndExport(); }
+        });
+
+        function verifyAndExport() {
+            if (pwdInput.value === '2121') {
+                closeModal();
+                exportPDF();
+            } else {
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        // Perfect Two-Page Fit PDF Logic
+        function exportPDF() {
+            // Temporarily remove standard browser gaps so html2pdf measures perfectly
+            containerEl.style.gap = '0';
+
+            const opt = {
+                margin:       0,
+                filename:     'Student_ID_Card.pdf',
+                image:        { type: 'jpeg', quality: 1 },
+                html2canvas:  { scale: 2, useCORS: true, letterRendering: true, allowTaint: true },
+                // UPDATED PDF EXPORT DIMENSIONS: 560px width x 400px height
+                jsPDF:        { unit: 'px', format: [560, 400], orientation: 'landscape' },
+                pagebreak:    { mode: 'css' }
+            };
+
+            html2pdf().set(opt).from(containerEl).save().then(() => {
+                // Restore gap spacing for the live web preview after download completes
+                containerEl.style.gap = '2rem';
+            });
+        }
+    </script>
+</body>
+</html>
